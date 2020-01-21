@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Openplotter. If not, see <http://www.gnu.org/licenses/>.
 
-import wx, os, webbrowser, subprocess, socket
+import wx, os, webbrowser, subprocess, socket, time
 import wx.richtext as rt
 from openplotterSettings import conf
 from openplotterSettings import language
@@ -27,11 +27,11 @@ class MyFrame(wx.Frame):
 		self.conf = conf.Conf()
 		self.conf_folder = self.conf.conf_folder
 		self.platform = platform.Platform()
-		self.currentdir = os.path.dirname(__file__)
+		self.currentdir = os.path.dirname(os.path.abspath(__file__))
 		self.currentLanguage = self.conf.get('GENERAL', 'lang')
 		self.language = language.Language(self.currentdir,'openplotter-MCS',self.currentLanguage)
 
-		wx.Frame.__init__(self, None, title=_('OpenPlotter MCS'), size=(800,520))
+		wx.Frame.__init__(self, None, title=_('OpenPlotter MCS'), size=(800,440))	#All apps should work on raspberry touch display 800x480
 		self.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
 		icon = wx.Icon(self.currentdir+"/data/openplotter-MCS.png", wx.BITMAP_TYPE_PNG)
 		self.SetIcon(icon)
@@ -85,7 +85,7 @@ class MyFrame(wx.Frame):
 		vbox.Add(self.toolbar1, 0, wx.EXPAND)
 		vbox.Add(self.notebook, 1, wx.EXPAND)
 		self.SetSizer(vbox)
-
+		
 		self.pageMCS()
 		self.pageowire()
 		self.pageConnections()
@@ -96,7 +96,6 @@ class MyFrame(wx.Frame):
 		
 		maxi = self.conf.get('GENERAL', 'maximize')
 		if maxi == '1': self.Maximize()
-
 
 		##
 		self.read_sensors()
@@ -122,7 +121,9 @@ class MyFrame(wx.Frame):
 		self.ShowStatusBar(w_msg,(255,140,0))
 
 	def onTabChange(self, event):
-		self.SetStatusText('')
+		try:
+			self.SetStatusText('')
+		except: pass
 
 	# create your page in the manuals and add the link here
 	def OnToolHelp(self, event):
@@ -142,39 +143,33 @@ class MyFrame(wx.Frame):
 		self.output.SetSizer(sizer)
 
 	def pageMCS(self):
-
-		Info_Label = wx.StaticText(self.MCS_Settings, label=_("Settings for MCP2515 (CAN/NMEA2000) must done in CAN App. Settings for GPIO Input must done in Action App\n"))
+		Info_Label = wx.StaticText(self.MCS_Settings, label=_('Settings for MCP2515 (CAN/NMEA2000) must be done in CAN App. Settings. For GPIO Input use Action App or node red'))
 		Info_Label.SetForegroundColour((139,37,0))
 
 		########### read MCS CAN Interfaces
-		try:
+		if os.path.isdir('/sys/class/net/can0'):
 			cansetting = os.popen ("ifconfig can0")
 			cansetting_in = cansetting.read()
-			if "can0" not in cansetting_in:
-				cansetting_in= "no CAN Device found"
-		except:
-			self.ShowStatusBarYELLOW(_('Cannot read ifconfig'))
+		else:
+			cansetting_in= _('No CAN Device found. Use Openplotter-CAN BUS (MCP2515,SPI1,16MHz,25)')
 
-		CANstat_Label = wx.StaticText(self.MCS_Settings, label=_('Available MCS-CAN Interfaces:\n '))
+		CANstat_Label = wx.StaticText(self.MCS_Settings, label=_('Available MCS-CAN Interfaces:'))
 		CANstat_Label.SetForegroundColour((0,0,139))
-		CANstat = wx.StaticText(self.MCS_Settings, label = cansetting_in)
+		CANstat = wx.StaticText(self.MCS_Settings, label = cansetting_in[:-2])
 
 		########### read MCS Serial Interfaces
-		try:
-			ser=os.listdir("/dev/")
-			avser=""
-			for i in ser:
-				if "ttySC" in i:
-					avser=i+" ; "+avser
+		ser=os.listdir("/dev/")
+		avser=""
+		for i in ser:
+			if "ttySC" in i:
+				avser=i+" ; "+avser
 
-			if "ttySC0" not in avser:
-				avser= "no Serial Device found"
-		except:
-			self.ShowStatusBarYELLOW(_('Cannot read /dev/'))
+		if "ttySC0" not in avser:
+			avser= _('no Serial Device found')
 
-		SERstat_Label = wx.StaticText(self.MCS_Settings, label=_('Available MCS-Serial Interfaces:\n '))
+		SERstat_Label = wx.StaticText(self.MCS_Settings, label=_('Available MCS-Serial Interfaces:'))
 		SERstat_Label.SetForegroundColour((0,0,139))
-		SERstat = wx.StaticText(self.MCS_Settings, label = avser )
+		SERstat = wx.StaticText(self.MCS_Settings, label = avser[:-3] )
 
 		self.ShowStatusBarGREEN(_('all settings read succesful'))
 
@@ -186,44 +181,34 @@ class MyFrame(wx.Frame):
 	
 		############
 
-
 		hbox = wx.BoxSizer(wx.VERTICAL)
-		hbox.Add(Info_Label, 0, wx.LEFT | wx.EXPAND, 5)
-		hbox.Add(wx.StaticLine(self.MCS_Settings), 0, wx.RIGHT | wx.LEFT | wx.EXPAND, 5)
-		hbox.Add(autoshutd_Label, 0, wx.LEFT | wx.EXPAND, 5)
-		hbox.Add(self.cbasd, flag=wx.TOP|wx.LEFT, border=10)
-		hbox.AddSpacer(5)	
-		hbox.Add(wx.StaticLine(self.MCS_Settings), 0, wx.RIGHT | wx.LEFT | wx.EXPAND, 5)
-		hbox.Add(CANstat_Label, 0, wx.LEFT | wx.EXPAND, 5)
+		hbox.Add(Info_Label, 0, wx.ALL | wx.EXPAND, 5)
+		hbox.Add(wx.StaticLine(self.MCS_Settings), 0, wx.RIGHT | wx.LEFT | wx.BOTTOM | wx.EXPAND, 5)
+		hbox.Add(autoshutd_Label, 0, wx.ALL | wx.EXPAND, 5)
+		hbox.Add(self.cbasd, 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 6)
+		hbox.Add(wx.StaticLine(self.MCS_Settings), 0, wx.RIGHT | wx.LEFT | wx.BOTTOM | wx.EXPAND, 5)
+		hbox.Add(CANstat_Label, 0, wx.ALL | wx.EXPAND, 5)
 		hbox.Add(CANstat, 0, wx.LEFT | wx.EXPAND, 5)
-		hbox.Add(wx.StaticLine(self.MCS_Settings), 0, wx.RIGHT | wx.LEFT | wx.EXPAND, 5)
-		hbox.Add(SERstat_Label, 0, wx.LEFT | wx.EXPAND, 5)
-		hbox.Add(SERstat, 0, wx.LEFT | wx.EXPAND, 5)
-
-		vbox = wx.BoxSizer(wx.VERTICAL)
-		vbox.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
-		vbox.AddStretchSpacer(1)
-		self.MCS_Settings.SetSizer(vbox)
+		hbox.Add(wx.StaticLine(self.MCS_Settings), 0, wx.ALL | wx.EXPAND, 5)
+		hbox.Add(SERstat_Label, 0, wx.ALL | wx.EXPAND, 5)
+		hbox.Add(SERstat, 0, wx.ALL | wx.EXPAND, 5)
+		hbox.AddStretchSpacer(1)
+		self.MCS_Settings.SetSizer(hbox)
 		
-		self.read_asd()
-		
-		
+		self.read_asd()		
 
 	def read_asd (self) :
 		stat_asd = self.conf.get('MCS', 'asd_state')
 		if not stat_asd: stat_asd= "False"
 		self.cbasd.SetValue(eval(stat_asd))
-		
-		
-		
 			
 
 	def pageowire(self):
 		self.listSensors = wx.ListCtrl(self.owire, -1, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.LC_HRULES, size=(-1,200))
 		self.listSensors.InsertColumn(0, ' ', width=16)
-		self.listSensors.InsertColumn(1, _('SensorID'), width=180)
-		self.listSensors.InsertColumn(2, _('Name'), width=150)
-		self.listSensors.InsertColumn(3, _('Value'), width=100)
+		self.listSensors.InsertColumn(1, _('SensorID'), width=130)
+		self.listSensors.InsertColumn(2, _('Name'), width=130)
+		self.listSensors.InsertColumn(3, _('Value'), width=70)
 		self.listSensors.InsertColumn(4, _('SignalK Key'), width=300)
 
 		self.listSensors.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onListSensorsSelected)
@@ -242,7 +227,7 @@ class MyFrame(wx.Frame):
 
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		sizer.Add(self.listSensors, 1, wx.EXPAND, 0)
-		sizer.Add(self.toolbar2, 0)
+		sizer.Add(self.toolbar2, 0, wx.EXPAND, 0)
 		self.owire.SetSizer(sizer)
 
 
@@ -253,7 +238,6 @@ class MyFrame(wx.Frame):
 			self.config_osensors = eval (data)
 			if not self.config_osensors:
 				self.config_osensors = []
-
 
 		except:
 			self.config_osensors=[]
@@ -414,7 +398,10 @@ class MyFrame(wx.Frame):
 		self.printConnections()
 
 	def readConnections(self):
-		from .ports import Ports
+		try:
+			from .ports import Ports
+		except: 
+			from ports import Ports
 		self.ports = Ports(self.conf, self.currentLanguage)
 
 	def printConnections(self):
@@ -537,11 +524,26 @@ class MyFrame(wx.Frame):
 		popen = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, shell=True)
 		for line in popen.stdout:
 			if not 'Warning' in line and not 'WARNING' in line:
-				self.logger.WriteText(line)
+				self.logger.WriteText('  '+line[5:])
 				#self.ShowStatusBarYELLOW(_('Updating packages data, please wait... ')+line)
 				self.logger.ShowPosition(self.logger.GetLastPosition())
 		self.logger.EndTextColour()
 
+		# Read 1W Interfaces
+		self.logger.BeginTextColour((0, 130, 0))
+		self.logger.BeginBold()
+		self.logger.WriteText(_('Available 1-Wire devices on MCS:'))
+		self.logger.EndBold()
+		self.logger.EndTextColour()
+		self.logger.Newline()
+		self.logger.BeginTextColour((55, 55, 55))
+		
+		if os.path.isdir('/sys/bus/w1/devices/w1_bus_master1'):
+			x= os.listdir("/sys/bus/w1/devices")
+			for i in x:
+				self.logger.WriteText('  '+i+'\n')			
+		self.logger.EndTextColour()
+		
 		# Read CAN (ifconfig) Interfaces
 		self.logger.BeginTextColour((0, 130, 0))
 		self.logger.BeginBold()
@@ -551,14 +553,15 @@ class MyFrame(wx.Frame):
 		self.logger.Newline()
 		# or print any program output
 		self.logger.BeginTextColour((55, 55, 55))
-		command = self.platform.admin+' ifconfig '
+		command = self.platform.admin+' ifconfig can0'
 		popen = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, shell=True)
 		for line in popen.stdout:
-			if not 'Warning' in line and not 'WARNING' in line:
+			if not 'Warning' in line and not 'WARNING' in line and len(line)>3:
 				self.logger.WriteText(line)
 				#self.ShowStatusBarYELLOW(_('Updating packages data, please wait... ')+line)
 				self.logger.ShowPosition(self.logger.GetLastPosition())
 		self.logger.EndTextColour()
+		
 
 ################################################################################
 
@@ -736,6 +739,7 @@ class editowire(wx.Dialog):
 def main():
 	app = wx.App()
 	MyFrame().Show()
+	time.sleep(1.5)
 	app.MainLoop()
 
 if __name__ == '__main__':

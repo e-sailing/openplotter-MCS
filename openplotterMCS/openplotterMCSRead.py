@@ -18,48 +18,64 @@ import socket, time, random, os
 from openplotterSettings import conf
 
 # this file runs as a service in the background
+
+
+def getlist():
+	ls = ''
+	try:
+		ls= os.listdir("/sys/bus/w1/devices")
+		ls.remove ("w1_bus_master1")
+	except: pass
+	return ls
+
 def main():
+	temp = 0
 	try:
 		conf2 = conf.Conf()
 		value = conf2.get('MCS', 'sending')
 		port = conf2.get('MCS', 'MCSConn1')
 		Sensor = conf2.get('MCS', 'owiresensors')
 		config_osensors = eval (Sensor)
+	except Exception as e: 
+		print (str(e))
+		return
 		
-		if value == '1':
-			# this script sends data to Signal K servers by an UDP connection in client mode
-			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-			while True:
-				values=""
-			
-				###########			
-				for i in config_osensors:
-					try:
-						x= os.listdir("/sys/bus/w1/devices")
-						x.remove ("w1_bus_master1")
+	if value == '1':
+		# this script sends data to Signal K servers by an UDP connection in client mode
+		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		k=30
+		while True:
+			values=""
+			k+=1
+			if k > 20:
+				k=0
+				xx=getlist()
 
-						for ii in x:
-							if ii ==i[0]:
-								foo = open("/sys/bus/w1/devices/"+ ii +"/w1_slave","r")
-								data = foo.read ()
-								foo.close()
-								spos=data.find("t=")
-								tempx=(data[spos+2:-1])
-								temp = int(tempx)/1000
-								temp = temp + 273.15
-					except Exception as e: print (str(e))
-								
-					values += '{"path":"'+ str(i[2]) +'","value":' +str(temp)+ '},'
-					#print (values)
-			
-			
-			############
-				values=values[0:-1]
-				SignalK = '{"updates":[{"$source":"OpenPlotter.MCS.OWire","values":['+values+']}]}\n'	
-				#print (SignalK)
-				sock.sendto(SignalK.encode('utf-8'), ('127.0.0.1', int(port)))
-				time.sleep(2)
-	except Exception as e: print (str(e))
+			###########			
+			for i in config_osensors:
+				#try:
+				if True:
+					for ii in xx:
+						if ii ==i[0]:
+							foo = open("/sys/bus/w1/devices/"+ ii +"/w1_slave","r")
+							data = foo.read ()
+							foo.close()
+							spos=data.find("t=")
+							tempx=(data[spos+2:-1])
+							temp = int(tempx)/1000
+							temp = temp + 273.15
+				#except Exception as e: print (str(e))
+							
+				values += '{"path":"'+ str(i[2]) +'","value":' +str(temp)+ '},'
+				#print (values)
+		
+		
+		############
+			values=values[0:-1]
+			SignalK = '{"updates":[{"$source":"OpenPlotter.MCS.OWire","values":['+values+']}]}\n'	
+			#print (SignalK)
+			sock.sendto(SignalK.encode('utf-8'), ('127.0.0.1', int(port)))
+			time.sleep(2)
 
 if __name__ == '__main__':
 	main()
