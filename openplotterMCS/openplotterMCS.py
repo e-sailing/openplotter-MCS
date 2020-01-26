@@ -523,7 +523,7 @@ class MyFrame(wx.Frame):
 		command = self.platform.admin+' ls /dev/ttySC* '
 		popen = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, shell=True)
 		for line in popen.stdout:
-			if not 'Warning' in line and not 'WARNING' in line:
+			if not 'Warning' in line and not 'WARNING' in line and not '/dev/ttySC*' in line:
 				self.logger.WriteText('  '+line[5:])
 				#self.ShowStatusBarYELLOW(_('Updating packages data, please wait... ')+line)
 				self.logger.ShowPosition(self.logger.GetLastPosition())
