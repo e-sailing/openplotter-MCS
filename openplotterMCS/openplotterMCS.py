@@ -151,7 +151,7 @@ class MyFrame(wx.Frame):
 			cansetting = os.popen ("ifconfig can0")
 			cansetting_in = cansetting.read()
 		else:
-			cansetting_in= _('No CAN Device found. Use Openplotter-CAN BUS (MCP2515,SPI1,16MHz,25)')
+			cansetting_in= _('No CAN Device found. Use Openplotter-CAN BUS (MCP2515,SPI1,16MHz,25)'+'  ')
 
 		CANstat_Label = wx.StaticText(self.MCS_Settings, label=_('Available MCS-CAN Interfaces:'))
 		CANstat_Label.SetForegroundColour((0,0,139))

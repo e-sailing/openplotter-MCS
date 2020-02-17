@@ -22,7 +22,7 @@ from openplotterSettings import language
 class Start():
 	def __init__(self, conf, currentLanguage):
 		self.conf = conf
-		currentdir = os.path.dirname(__file__)
+		currentdir = os.path.dirname(os.path.abspath(__file__))
 		language.Language(currentdir,'openplotter-MCS',currentLanguage)
 		# "self.initialMessage" will be printed at startup if it has content. If not, the function "start" will not be called. Use trasnlatable text: _('Starting My App...')
 		self.initialMessage = 'Starting MCS-APP'
@@ -54,7 +54,7 @@ class Start():
 class Check():
 	def __init__(self, conf, currentLanguage):
 		self.conf = conf
-		currentdir = os.path.dirname(__file__)
+		currentdir = os.path.dirname(os.path.abspath(__file__))
 		language.Language(currentdir,'openplotter-MCS',currentLanguage)
 		# "self.initialMessage" will be printed when checking the system. If it is empty the function check will not be called. Use trasnlatable text: _('Checking My App...')
 		self.initialMessage = _('Checking MCS-App running...')

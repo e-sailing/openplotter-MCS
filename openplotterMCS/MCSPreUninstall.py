@@ -21,7 +21,7 @@ from openplotterSettings import language
 def main():
 	# This file will be ran as sudo. Do here whatever you need to remove files and programs before app uninstall.
 	conf2 = conf.Conf()
-	currentdir = os.path.dirname(__file__)
+	currentdir = os.path.dirname(os.path.abspath(__file__))
 	currentLanguage = conf2.get('GENERAL', 'lang')
 	language.Language(currentdir,'openplotter-MCS',currentLanguage)
 
